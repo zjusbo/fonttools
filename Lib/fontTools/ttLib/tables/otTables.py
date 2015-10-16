@@ -866,10 +866,12 @@ def _buildClasses():
 			9: ExtensionPos,
 		},
 		'morx': {
-			#0: RearrangementMorph,
-			1: LigatureMorph,#XXX
+			0: RearrangementMorph,
+			1: ContextualMorph,
 			2: LigatureMorph,
-			4: LigatureMorph,#XXX
+                        # 3: Reserved,
+			4: NoncontextualMorph,
+                        5: InsertionMorph,
 		},
 	}
 	lookupTypes['JSTF'] = lookupTypes['GPOS']  # JSTF contains GPOS
