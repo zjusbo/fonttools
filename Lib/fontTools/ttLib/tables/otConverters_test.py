@@ -40,6 +40,20 @@ class AATLookupTest(unittest.TestCase):
             "E": "A"
         })
 
+    def test_readFormat2(self):
+        reader = OTTableReader(deHexStr(
+            "0002 0006 0003 000C 0001 0006 "
+            "0002 0001 0003 "   # glyph A..B: map to C
+            "0007 0005 0008 "   # glyph E..G: map to H
+            "FFFF FFFF FFFF"))  # end of search table
+        self.assertEqual(self.converter.read(reader, self.font, None), {
+            "A": "C",
+            "B": "C",
+            "E": "H",
+            "F": "H",
+            "G": "H",
+        })
+
     def test_readFormat4(self):
         reader = OTTableReader(deHexStr(
             "0004 0006 0003 000C 0001 0006 "

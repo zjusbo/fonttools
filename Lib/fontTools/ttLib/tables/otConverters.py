@@ -450,6 +450,8 @@ class AATLookup(BaseConverter):
 		format = reader.readUShort()
 		if format == 0:
 			mapping = self.readFormat0(reader, len(glyphs))
+		elif format == 2:
+			mapping = self.readFormat2(reader)
 		elif format == 4:
                         mapping = self.readFormat4(reader)
 		else:
@@ -461,6 +463,21 @@ class AATLookup(BaseConverter):
 	def readFormat0(self, reader, numGlyphs):
 		data = reader.readUShortArray(numGlyphs)
 		return {k:v for (k,v) in enumerate(data)}
+
+	def readFormat2(self, reader):
+		mapping = {}
+		pos = reader.pos - 2  # start of table is at UShort for format
+		size = reader.readUShort()
+		assert size == 6, size
+		for i in range(reader.readUShort()):
+			reader.seek(pos + i * size + 12)
+			last = reader.readUShort()
+			first = reader.readUShort()
+			value = reader.readUShort()
+			if last != 0xFFFF:
+				for k in range(first, last + 1):
+					mapping[k] = value
+		return mapping
 
 	def readFormat4(self, reader):
 		mapping = {}
