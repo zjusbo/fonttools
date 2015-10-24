@@ -454,6 +454,8 @@ class AATLookup(BaseConverter):
 			mapping = self.readFormat2(reader)
 		elif format == 4:
                         mapping = self.readFormat4(reader)
+		elif format == 6:
+                        mapping = self.readFormat6(reader)
 		else:
 			# TODO: Implement missing formats.
 			mapping = {}
@@ -494,6 +496,19 @@ class AATLookup(BaseConverter):
 				data = dataReader.readUShortArray(last - first + 1)
 				for k, v in enumerate(data):
 					mapping[first + k] = v
+		return mapping
+
+	def readFormat6(self, reader):
+		mapping = {}
+		pos = reader.pos - 2  # start of table is at UShort for format
+		size = reader.readUShort()
+		assert size == 4, size
+		for i in range(reader.readUShort()):
+			reader.seek(pos + i * size + 12)
+			glyph = reader.readUShort()
+			value = reader.readUShort()
+			if glyph != 0xFFFF:
+				mapping[glyph] = value
 		return mapping
 
 	def xmlWrite(self, xmlWriter, font, value, name, attrs):

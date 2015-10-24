@@ -68,6 +68,17 @@ class AATLookupTest(unittest.TestCase):
             "E": "H",
         })
 
+    def test_readFormat6(self):
+        reader = OTTableReader(deHexStr(
+            "0006 0004 0003 0008 0001 0004 "
+            "0003 0001 "   # C --> A
+            "0005 0002 "   # E --> B
+            "FFFF FFFF"))  # end of search table
+        self.assertEqual(self.converter.read(reader, self.font, None), {
+            "C": "A",
+            "E": "B",
+        })
+
 
 if __name__ == "__main__":
     unittest.main()
