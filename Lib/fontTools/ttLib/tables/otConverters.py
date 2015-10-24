@@ -446,9 +446,9 @@ class ValueRecord(ValueFormat):
 
 class AATLookup(BaseConverter):
 	def read(self, reader, font, tableDict):
-		glyphs = font.getGlyphOrder()
 		format = reader.readUShort()
 		if format == 0:
+			glyphs = font.getGlyphOrder()
 			mapping = self.readFormat0(reader, len(glyphs))
 		elif format == 2:
 			mapping = self.readFormat2(reader)
@@ -456,9 +456,10 @@ class AATLookup(BaseConverter):
                         mapping = self.readFormat4(reader)
 		elif format == 6:
                         mapping = self.readFormat6(reader)
+		elif format == 8:
+                        mapping = self.readFormat8(reader)
 		else:
-			# TODO: Implement missing formats.
-			mapping = {}
+			assert False, "unsupported lookup format: %d" % format
 		return {font.getGlyphName(k):font.getGlyphName(v)
 		        for k, v in mapping.items() if k != v}
 
@@ -510,6 +511,12 @@ class AATLookup(BaseConverter):
 			if glyph != 0xFFFF:
 				mapping[glyph] = value
 		return mapping
+
+	def readFormat8(self, reader):
+		first = reader.readUShort()
+		count = reader.readUShort()
+		data = reader.readUShortArray(count)
+		return {(first + k):v for (k, v) in enumerate(data)}
 
 	def xmlWrite(self, xmlWriter, font, value, name, attrs):
 		items = sorted(value.items())

@@ -32,6 +32,13 @@ class AATLookupTest(unittest.TestCase):
     font = FakeFont(".notdef A B C D E F G H".split())
     converter = otConverters.AATLookup("AATLookup", 0, None, None)
 
+    def __init__(self, methodName):
+        unittest.TestCase.__init__(self, methodName)
+        # Python 3 renamed assertRaisesRegexp to assertRaisesRegex,
+        # and fires deprecation warnings if a program uses the old name.
+        if not hasattr(self, "assertRaisesRegex"):
+            self.assertRaisesRegex = self.assertRaisesRegexp
+
     def test_readFormat0(self):
         reader = OTTableReader(deHexStr("0000 0000 0001 0002 0000 7D00 0001"))
         self.assertEqual(self.converter.read(reader, self.font, None), {
@@ -78,6 +85,24 @@ class AATLookupTest(unittest.TestCase):
             "C": "A",
             "E": "B",
         })
+
+    def test_readFormat8(self):
+        reader = OTTableReader(deHexStr(
+            "0008 "
+            "0003 0003 "        # first: C, count: 3
+            "0007 0001 0002"))  # [G, A, B]
+        self.assertEqual(self.converter.read(reader, self.font, None), {
+            "C": "G",
+            "D": "A",
+            "E": "B",
+        })
+
+    def test_readUnknownFormat(self):
+        reader = OTTableReader(deHexStr("0009"))
+        self.assertRaisesRegex(
+            AssertionError,
+            "unsupported lookup format: 9",
+            self.converter.read, reader, self.font, None)
 
 
 if __name__ == "__main__":
