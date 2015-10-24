@@ -446,8 +446,8 @@ class ValueRecord(ValueFormat):
 
 class AATLookup(BaseConverter):
 	def read(self, reader, font, tableDict):
-		format = reader.readUShort()
 		glyphs = font.getGlyphOrder()
+		format = reader.readUShort()
 		if format == 0:
 			mapping = self.readFormat0(reader, len(glyphs))
 		elif format == 4:
@@ -463,24 +463,17 @@ class AATLookup(BaseConverter):
 		return {k:v for (k,v) in enumerate(data)}
 
 	def readFormat4(self, reader):
-		# TODO: When parsing MorphSubtable index=34 in Zapfino.ttf,
-		# it seems that we're getting the right mapping keys
-		# but the substituted glyphs seem a little weird. Possibly,
-		# we're reading the array from the wrong offset at line [*].
-		# Sadly, ftxdumperfuser is not emitting the content of this
-		# particular subtable due to a bug in the tool. Once we have
-		# a fixed version of ftxdumperfuser, it will be easier to
-		# figure out what the right offset is.
 		mapping = {}
-		pos = reader.pos
+		pos = reader.pos - 2  # start of table is at UShort for format
 		size = reader.readUShort()
+		assert size == 6, size
 		for i in range(reader.readUShort()):
-			reader.seek(pos + i * size + 10)
+			reader.seek(pos + i * size + 12)
 			last = reader.readUShort()
 			first = reader.readUShort()
 			offset = reader.readUShort()
 			if last != 0xFFFF:
-				dataReader = reader.getSubReader(offset) # [*]
+				dataReader = reader.getSubReader(pos + offset)
 				data = dataReader.readUShortArray(last - first + 1)
 				for k, v in enumerate(data):
 					mapping[first + k] = v

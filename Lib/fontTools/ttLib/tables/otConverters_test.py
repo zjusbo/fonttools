@@ -29,7 +29,7 @@ class GlyphIDTest(unittest.TestCase):
 
 
 class AATLookupTest(unittest.TestCase):
-    font = FakeFont(".notdef A B C D E".split())
+    font = FakeFont(".notdef A B C D E F G H".split())
     converter = otConverters.AATLookup("AATLookup", 0, None, None)
 
     def test_readFormat0(self):
@@ -38,6 +38,20 @@ class AATLookupTest(unittest.TestCase):
             "C": ".notdef",
             "D": "glyph32000",
             "E": "A"
+        })
+
+    def test_readFormat4(self):
+        reader = OTTableReader(deHexStr(
+            "0004 0006 0003 000C 0001 0006 "
+            "0002 0001 001E "  # glyph 1..2: mapping at offset 0x1E
+            "0005 0004 001E "  # glyph 4..5: mapping at offset 0x1E
+            "FFFF FFFF FFFF "  # end of search table
+            "0007 0008"))      # offset 0x18: glyphs [7, 8] = [G, H]
+        self.assertEqual(self.converter.read(reader, self.font, None), {
+            "A": "G",
+            "B": "H",
+            "D": "G",
+            "E": "H",
         })
 
 
