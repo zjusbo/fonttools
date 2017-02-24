@@ -14,7 +14,7 @@ a Glyphs source, eg., using noto-source as an example:
 
 Then you can make a variable-font this way:
 
-  $ python fonttools/Lib/fontTools/varLib/__init__.py master_ufo/NotoSansArabic.designspace
+  $ fonttools varLib master_ufo/NotoSansArabic.designspace
 
 API *will* change in near future.
 """
@@ -27,8 +27,9 @@ from fontTools.ttLib.tables._f_v_a_r import Axis, NamedInstance
 from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates
 from fontTools.ttLib.tables._g_v_a_r import TupleVariation
 from fontTools.ttLib.tables import otTables as ot
-from fontTools.varLib import designspace, models
+from fontTools.varLib import builder, designspace, models
 from fontTools.varLib.merger import VariationMerger
+import collections
 import warnings
 import os.path
 import logging
@@ -59,7 +60,9 @@ def _add_fvar(font, axes, instances, axis_map):
 	font['fvar'] = fvar = newTable('fvar')
 	nameTable = font['name']
 
-	for iden in sorted(axes.keys(), key=lambda k: axis_map[k][0]):
+	for iden in axis_map.keys():
+		if not iden in axes:
+			continue
 		axis = Axis()
 		axis.axisTag = Tag(axis_map[iden][0])
 		axis.minValue, axis.defaultValue, axis.maxValue = axes[iden]
@@ -265,7 +268,7 @@ def build(designspace_filename, master_finder=lambda s:s, axisMap=None):
 	(axis-tag, axis-name).
 	"""
 
-	masters, instances = designspace.load(designspace_filename)
+	masters, instances, axisMapDS = designspace.load(designspace_filename)
 	base_idx = None
 	for i,m in enumerate(masters):
 		if 'info' in m and m['info']['copy']:
@@ -281,18 +284,14 @@ def build(designspace_filename, master_finder=lambda s:s, axisMap=None):
 	master_ttfs = [master_finder(os.path.join(basedir, m['filename'])) for m in masters]
 	master_fonts = [TTFont(ttf_path) for ttf_path in master_ttfs]
 
-	standard_axis_map = {
-		'weight':  ('wght', 'Weight'),
-		'width':   ('wdth', 'Width'),
-		'slant':   ('slnt', 'Slant'),
-		'optical': ('opsz', 'Optical Size'),
-		'custom':  ('xxxx', 'Custom'),
-	}
-
-	axis_map = standard_axis_map
 	if axisMap:
-		axis_map = axis_map.copy()
+		axis_map = designspace.standard_axis_map.copy()
 		axis_map.update(axisMap)
+	elif axisMapDS:
+		axis_map = axisMapDS
+	else:
+		axis_map = designspace.standard_axis_map
+	
 
 	# TODO: For weight & width, use OS/2 values and setup 'avar' mapping.
 
