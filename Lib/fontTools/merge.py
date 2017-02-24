@@ -79,6 +79,25 @@ def onlyExisting(func):
 
 	return wrapper
 
+@onlyExisting
+def existingEqual(lst):
+	"""Checks that there should be at least 1 existing element (elements that are
+	not NotImplemented) and all existing elements are the same.
+
+	Args:
+		lst: a list of elements
+
+	Returns:
+		One of the existing element.
+
+	Example:
+		existingEqual([NotImplemented, NotImplemented]) asserts
+		existingEqual([1, 2, NotImplemented]) asserts
+		existingEqual([1, 1, NotImplemented]) returns 1
+	"""
+	assert lst is not NotImplemented, "Expected at least one element exist"
+	return equal(lst)
+
 def sumLists(lst):
 	l = []
 	for item in lst:
@@ -316,12 +335,6 @@ ttLib.getTableClass('vmtx').mergeMap = ttLib.getTableClass('hmtx').mergeMap = {
 	'metrics': sumDicts,
 }
 
-ttLib.getTableClass('gasp').mergeMap = {
-	'tableTag': equal,
-	'version': max,
-	'gaspRange': first, # FIXME? Appears irreconcilable
-}
-
 ttLib.getTableClass('name').mergeMap = {
 	'tableTag': equal,
 	'names': first, # FIXME? Does mixing name records make sense?
@@ -355,6 +368,7 @@ def merge(self, m, tables):
 ttLib.getTableClass('prep').mergeMap = lambda self, lst: first(lst)
 ttLib.getTableClass('fpgm').mergeMap = lambda self, lst: first(lst)
 ttLib.getTableClass('cvt ').mergeMap = lambda self, lst: first(lst)
+ttLib.getTableClass('gasp').mergeMap = lambda self, lst: first(lst) # FIXME? Appears irreconcilable
 
 @_add_method(ttLib.getTableClass('cmap'))
 def merge(self, m, tables):
