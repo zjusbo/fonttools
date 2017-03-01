@@ -1,10 +1,22 @@
-from fontTools.misc.py23 import *
+import sys
+import unittest
+import contextlib
+
 import fontTools
+from fontTools.misc.py23 import *
 from fontTools import ttLib
 from fontTools.merge import *
-import unittest
+from fontTools.misc.loggingTools import CapturingLogHandler
 from fontTools.ttLib.tables.otTables import GSUB, SingleSubst, LangSys, LookupList, Lookup, Feature, FeatureList, FeatureRecord, Script, ScriptList, ScriptRecord, LigatureSubst, Ligature
-import sys
+
+
+@contextlib.contextmanager
+def mockIsGlyphSame(boolean):
+	tmp = fontTools.merge.isGlyphSame
+	fontTools.merge.isGlyphSame = lambda fonts, ogid, gid : boolean
+	yield
+	fontTools.merge.isGlyphSame = tmp
+
 
 class MergeIntegrationTest(unittest.TestCase):
 	# TODO
@@ -145,11 +157,6 @@ class GSUBMergUnitTest(unittest.TestCase):
 			t.table.ScriptList.mapFeatures(featureMap)
 
 	def setUp(self):
-		if sys.version_info >= (3, 0):
-			from io import StringIO
-		else:
-			from StringIO import StringIO
-
 		self.merger = Merger()
 
 		self.table1 = self.buildGSUB()
@@ -164,14 +171,6 @@ class GSUBMergUnitTest(unittest.TestCase):
 		self.table2.table.LookupList.Lookup[0].SubTable[0] = sub
 
 		self.mergedTable = ttLib.newTable('GSUB')
-
-		self.stdout = StringIO()
-		self.stderr = StringIO()
-		sys.stdout = self.stdout
-		sys.stderr = self.stderr
-	def tearDown(self):
-		sys.stdout = sys.__stdout__
-		sys.stderr = sys.__stderr__
 
 	def test_GSUB_merge_no_dups(self):
 		self.merger.duplicateGlyphsPerFont = [{}, {}]
@@ -226,10 +225,8 @@ class GSUBMergUnitTest(unittest.TestCase):
 		self.table2 = NotImplemented
 		self.merger.duplicateGlyphsPerFont = [{}, {'uni0032#0': 'uni0032#1'}]
 		self.merger.fonts = []
-		fontTools.merge.isGlyphSame = lambda fonts, ogid, gid : True
-
-		self.mergedTable.merge(self.merger, [self.table1, self.table2])
-
+		with mockIsGlyphSame(True):
+			self.mergedTable.merge(self.merger, [self.table1, self.table2])
 		table = self.mergedTable.table
 		self.assertEqual(table, self.table1.table)
 
@@ -238,15 +235,13 @@ class GSUBMergUnitTest(unittest.TestCase):
 		self.merger.duplicateGlyphsPerFont = [{}, {'uni0032#0': 'uni0032#1'}]
 		self.merger.fonts = []
 		self.merger.fontfiles = ['font1', 'font2']
-		fontTools.merge.isGlyphSame = lambda fonts, ogid, gid : False
-
-		self.mergedTable.merge(self.merger, [self.table1, self.table2])
+		with mockIsGlyphSame(False):
+			with CapturingLogHandler(fontTools.merge.log, "WARNING") as captor:
+				self.mergedTable.merge(self.merger, [self.table1, self.table2])
 
 		table = self.mergedTable.table
 		self.assertEqual(table, self.table1.table)
-		# Checks warning
-		self.assertNotEqual(self.stderr.getvalue().strip(), '')
-
+		self.assertTrue(len([r for r in captor.records if r.msg != '']) > 0)
 class IsGlyphSame(unittest.TestCase):
 		def setUp(self):
 			# FIXME? This test requires at least one complete TTFont object including
